@@ -57,7 +57,7 @@ const NodeHeleprObject = {
         '.png': 'image/png',
         '.gif': 'image/gif',
         '.bmp': 'image/bmp',
-        '.webp': 'image/webp'
+        '.webp': 'image/webp',
       };
       
       const mimeType = mimeTypes[ext] || 'image/jpeg';
