@@ -219,13 +219,6 @@ autoInfoPosition: (album, photo)=> {
 }
 ```
 
-## Notice
+## Node
 
-- First scanning will take a few (~dozens) seconds. Don't panic.
-- If there are 1000s of photos, this scan could take minutes(over 10). longer scans increase the probablity of an error happening. If a single error happens in the scan, it will retry after 1 hour. After first successful scan, subsequent startups should go very quickly(seconds).
--
-
-## Last Tested
-
-- MagicMirror : v2.26.0
 - node.js : required over v18.
