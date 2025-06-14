@@ -1,7 +1,7 @@
 "use strict";
 
 const fs = require("fs");
-const { writeFile, readFile } = require("fs/promises");
+const { writeFile, readFile } = fs.promises;
 const path = require("path");
 const moment = require("moment");
 const NodeHelper = require("node_helper");
