@@ -29,6 +29,56 @@ const NodeHeleprObject = {
     this.CACHE_ALBUMNS_PATH = path.resolve(this.path, "cache", "selectedAlbumsCache.json");
     this.CACHE_PHOTOLIST_PATH = path.resolve(this.path, "cache", "photoListCache.json");
     this.CACHE_CONFIG = path.resolve(this.path, "cache", "config.json");
+
+    // Set up Express route for serving images
+    this.expressApp.get('/MMM-FolderPhotos/image/:imageId', (req, res) => {
+      this.serveImage(req, res);
+    });
+  },
+
+  serveImage: function (req, res) {
+    const imageId = req.params.imageId;
+    
+    // Find the photo by ID
+    const photo = this.localPhotoList.find(p => p.id === imageId);
+    
+    if (!photo || !fs.existsSync(photo.path)) {
+      this.log_error("Image not found:", imageId);
+      res.status(404).send('Image not found');
+      return;
+    }
+
+    try {
+      // Set appropriate headers
+      const ext = path.extname(photo.path).toLowerCase();
+      const mimeTypes = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.bmp': 'image/bmp',
+        '.webp': 'image/webp'
+      };
+      
+      const mimeType = mimeTypes[ext] || 'image/jpeg';
+      res.set('Content-Type', mimeType);
+      res.set('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+      
+      // Stream the file
+      const fileStream = fs.createReadStream(photo.path);
+      fileStream.pipe(res);
+      
+      fileStream.on('error', (error) => {
+        this.log_error("Error streaming image:", error.message);
+        if (!res.headersSent) {
+          res.status(500).send('Error serving image');
+        }
+      });
+      
+    } catch (error) {
+      this.log_error("Error serving image:", error.message);
+      res.status(500).send('Error serving image');
+    }
   },
 
   socketNotificationReceived: function (notification, payload) {

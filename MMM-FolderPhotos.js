@@ -121,7 +121,7 @@ Module.register("MMM-FolderPhotos", {
       this.index -= this.scanned.length;
     }
     let target = this.scanned[this.index];
-    let url = `file://${target.path}`;
+    let url = `/MMM-FolderPhotos/image/${target.id}`;
     this.ready(url, target);
     this.index++;
     if (this.index >= this.scanned.length) {
