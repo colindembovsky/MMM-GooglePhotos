@@ -44,12 +44,6 @@ Module.register("MMM-FolderPhotos", {
     if (this.config.updateInterval < 1000 * 10) this.config.updateInterval = 1000 * 10;
     this.config.condition = Object.assign({}, this.defaults.condition, this.config.condition);
 
-    // Expand tilde in rootPath
-    if (this.config.rootPath.startsWith('~/')) {
-      const os = require('os');
-      this.config.rootPath = this.config.rootPath.replace('~', os.homedir());
-    }
-
     const config = { ...this.config };
     
     this.sendSocketNotification("INIT", config);
