@@ -70,7 +70,79 @@ try {
   allFilesExist = false;
 }
 
-// Test 5: Check default configuration
+// Test 5: Test date extraction function
+console.log('\n5. Testing date extraction function...');
+
+// Mock the extractDateFromFilename function for testing
+function extractDateFromFilename(filename) {
+  // Look for YYYYMMDD pattern in filename
+  const datePattern = /(\d{4})(\d{2})(\d{2})/;
+  const match = filename.match(datePattern);
+  
+  if (match) {
+    const year = parseInt(match[1]);
+    const month = parseInt(match[2]);
+    const day = parseInt(match[3]);
+    
+    // Validate the date components
+    if (year >= 1900 && year <= new Date().getFullYear() + 10 && 
+        month >= 1 && month <= 12 && 
+        day >= 1 && day <= 31) {
+      
+      // Create date object and validate it actually exists
+      const date = new Date(year, month - 1, day); // month is 0-indexed in Date constructor
+      
+      // Check if the date is valid (handles invalid dates like Feb 30)
+      if (date.getFullYear() === year && 
+          date.getMonth() === month - 1 && 
+          date.getDate() === day) {
+        return date.toISOString();
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Test cases for date extraction
+const testCases = [
+  { filename: 'IMG_20231225_143052.jpg', expected: true, description: 'Standard date format' },
+  { filename: 'photo_20220101_120000.png', expected: true, description: 'New Year date' },
+  { filename: 'vacation_20230230_pic.jpg', expected: false, description: 'Invalid date (Feb 30)' },
+  { filename: 'family_20231301_gathering.jpg', expected: false, description: 'Invalid month (13)' },
+  { filename: 'beach_20221332_sunset.jpg', expected: false, description: 'Invalid day (32)' },
+  { filename: 'random_photo.jpg', expected: false, description: 'No date in filename' },
+  { filename: '2023_vacation.jpg', expected: false, description: 'Incomplete date' },
+  { filename: 'IMG_18001225_ancient.jpg', expected: false, description: 'Year too old' },
+  { filename: 'future_20401225_pic.jpg', expected: false, description: 'Year too far in future' },
+  { filename: 'IMG_20230415_spring.jpg', expected: true, description: 'Valid spring date' },
+];
+
+let dateTestsPassed = 0;
+let dateTestsFailed = 0;
+
+for (const testCase of testCases) {
+  const result = extractDateFromFilename(testCase.filename);
+  const passed = testCase.expected ? (result !== null) : (result === null);
+  
+  if (passed) {
+    console.log(`✓ ${testCase.description}: ${testCase.filename}`);
+    if (result) {
+      const extractedDate = new Date(result);
+      console.log(`  Extracted date: ${extractedDate.toDateString()}`);
+    }
+    dateTestsPassed++;
+  } else {
+    console.log(`✗ ${testCase.description}: ${testCase.filename}`);
+    console.log(`  Expected: ${testCase.expected ? 'valid date' : 'null'}, Got: ${result}`);
+    dateTestsFailed++;
+    allFilesExist = false;
+  }
+}
+
+console.log(`Date extraction tests: ${dateTestsPassed} passed, ${dateTestsFailed} failed`);
+
+// Test 6: Check default configuration
 console.log('\n5. Testing default configuration...');
 const testConfig = {
   rootPath: "~/Pictures/MagicMirror",

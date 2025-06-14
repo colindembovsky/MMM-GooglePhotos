@@ -111,9 +111,8 @@ validExtensions: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
 ### `condition`
 
 - You can filter photos by various criteria
-- `fromDate`/`toDate`: Filter by file modification time
+- `fromDate`/`toDate`: Filter by file date (see Date Handling section below)
 - Image dimension and ratio filters work the same as before
-- All date comparisons use the file's modification time
 
 ```js
 condition: {
@@ -122,6 +121,19 @@ condition: {
   maxWHRatio: 1, // I want to display photos which are portrait.
 }
 ```
+
+### Date Handling
+
+The module uses intelligent date extraction for photos:
+
+1. **Filename Date Extraction**: If the filename contains a date in YYYYMMDD format, that date will be used
+   - Examples: `IMG_20231225_143052.jpg`, `photo_20220101_120000.png`, `vacation_20230415_spring.jpg`
+   - The date must be valid (e.g., `20230230` for Feb 30 would be rejected)
+   - Only years between 1900 and 10 years in the future are accepted
+
+2. **File Modification Time Fallback**: If no valid date is found in the filename, the file's modification time is used
+
+This ensures that photos are displayed with the most accurate date possible, especially useful for photos transferred from cameras or phones that may have been modified after the original capture date.
 
 ### `showWidth`, `showHeight`
 

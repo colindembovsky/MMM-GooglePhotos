@@ -308,6 +308,36 @@ const NodeHeleprObject = {
     return photos;
   },
 
+  extractDateFromFilename: function (filename) {
+    // Look for YYYYMMDD pattern in filename
+    const datePattern = /(\d{4})(\d{2})(\d{2})/;
+    const match = filename.match(datePattern);
+    
+    if (match) {
+      const year = parseInt(match[1]);
+      const month = parseInt(match[2]);
+      const day = parseInt(match[3]);
+      
+      // Validate the date components
+      if (year >= 1900 && year <= new Date().getFullYear() + 10 && 
+          month >= 1 && month <= 12 && 
+          day >= 1 && day <= 31) {
+        
+        // Create date object and validate it actually exists
+        const date = new Date(year, month - 1, day); // month is 0-indexed in Date constructor
+        
+        // Check if the date is valid (handles invalid dates like Feb 30)
+        if (date.getFullYear() === year && 
+            date.getMonth() === month - 1 && 
+            date.getDate() === day) {
+          return date.toISOString();
+        }
+      }
+    }
+    
+    return null;
+  },
+
   createPhotoObject: async function (filePath, albumId) {
     try {
       const stats = fs.statSync(filePath);
@@ -321,11 +351,22 @@ const NodeHeleprObject = {
         this.log_debug("Could not get dimensions for:", filePath, error.message);
       }
       
+      const filename = path.basename(filePath);
+      
+      // Try to extract date from filename first, fallback to file modification time
+      let creationTime = this.extractDateFromFilename(filename);
+      if (!creationTime) {
+        creationTime = stats.mtime.toISOString();
+        this.log_debug("Using file modification time for:", filename);
+      } else {
+        this.log_debug("Extracted date from filename for:", filename, "->", creationTime);
+      }
+      
       return {
         id: crypto.createHash('md5').update(filePath).digest('hex'),
         path: filePath,
-        filename: path.basename(filePath),
-        creationTime: stats.mtime.toISOString(),
+        filename: filename,
+        creationTime: creationTime,
         width: dimensions.width || 0,
         height: dimensions.height || 0,
         _albumId: albumId,
