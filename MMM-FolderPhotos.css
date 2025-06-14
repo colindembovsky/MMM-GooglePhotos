@@ -1,4 +1,4 @@
-#GPHOTO_INFO {
+#FPHOTO_INFO {
   --top: none;
   --left: none;
   --bottom: 0;
@@ -10,7 +10,7 @@
   to {opacity: 1}
 }
 
-.region.fullscreen #GPHOTO {
+.region.fullscreen #FPHOTO {
   position:static;
   top:0;
   left:0;
@@ -19,13 +19,13 @@
 }
 
 
-#GPHOTO {
+#FPHOTO {
   position:relative;
   min-width: 300px;
   min-height:300px;
 }
 
-#GPHOTO_CURRENT {
+#FPHOTO_CURRENT {
   background-size:contain;
   background-repeat:no-repeat;
   background-position:center;
@@ -36,12 +36,12 @@
   bottom:10px;
 }
 
-#GPHOTO_CURRENT.animated {
+#FPHOTO_CURRENT.animated {
   animation-name: trans;
   animation-duration: 2s;
 }
 
-#GPHOTO_BACK {
+#FPHOTO_BACK {
   background-size:cover;
   background-repeat:no-repeat;
   background-position:center;
@@ -53,7 +53,7 @@
   filter: blur(10px) sepia(80%) brightness(40%);
 }
 
-#GPHOTO_INFO {
+#FPHOTO_INFO {
   position:absolute;
   top: var(--top);
   left: var(--left);
@@ -67,7 +67,7 @@
   text-align:left;
 }
 
-#GPHOTO_INFO .albumCover {
+#FPHOTO_INFO .albumCover {
   width:48px;
   height:48px;
   border-radius:50%;
@@ -77,15 +77,15 @@
   float:left;
 }
 
-#GPHOTO_INFO .albumTitle {
+#FPHOTO_INFO .albumTitle {
   color:#FDD;
 }
 
-#GPHOTO_INFO .photoTime {
+#FPHOTO_INFO .photoTime {
   color:#DFD;
 }
 
-#GPHOTO_INFO .infoText {
+#FPHOTO_INFO .infoText {
   float:right;
   margin-left: 12px;
   padding-right: 12px;

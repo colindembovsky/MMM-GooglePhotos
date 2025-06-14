@@ -40,9 +40,9 @@ const NodeHeleprObject = {
       case "IMAGE_LOAD_FAIL":
         {
           const { url, event, source, lineno, colno, error } = payload;
-          this.log_error("[GPHOTO] hidden.onerror", { event, source, lineno, colno });
+          this.log_error("[FPHOTO] hidden.onerror", { event, source, lineno, colno });
           if (error) {
-            this.log_error("[GPHOTO] hidden.onerror error", error.message, error.name, error.stack);
+            this.log_error("[FPHOTO] hidden.onerror error", error.message, error.name, error.stack);
           }
           this.log_error("Image loading fails. Check your file path:", url);
           this.prepAndSendChunk(Math.ceil((20 * 60 * 1000) / this.config.updateInterval)).then(); // 20min * 60s * 1000ms / updateinterval in ms
@@ -69,19 +69,19 @@ const NodeHeleprObject = {
   },
 
   log_debug: function (...args) {
-    Log.debug("[GPHOTOS] [node_helper]", ...args);
+    Log.debug("[FPHOTOS] [node_helper]", ...args);
   },
 
   log_info: function (...args) {
-    Log.info("[GPHOTOS] [node_helper]", ...args);
+    Log.info("[FPHOTOS] [node_helper]", ...args);
   },
 
   log_error: function (...args) {
-    Log.error("[GPHOTOS] [node_helper]", ...args);
+    Log.error("[FPHOTOS] [node_helper]", ...args);
   },
 
   log_warn: function (...args) {
-    Log.warn("[GPHOTOS] [node_helper]", ...args);
+    Log.warn("[FPHOTOS] [node_helper]", ...args);
   },
 
   initializeAfterLoading: function (config) {

@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
-// Simple test script to verify the MMM-LocalPhotos module can load
+// Simple test script to verify the MMM-FolderPhotos module can load
 // Run this from the module directory: node test.js
 
 const path = require('path');
 const fs = require('fs');
 
-console.log('Testing MMM-LocalPhotos module...');
+console.log('Testing MMM-FolderPhotos module...');
 
 // Test 1: Check if main files exist
 const mainFiles = [
-  'MMM-GooglePhotos.js',
+  'MMM-FolderPhotos.js',
   'node_helper.js',
   'package.json',
-  'MMM-GooglePhotos.css'
+  'MMM-FolderPhotos.css'
 ];
 
 console.log('\n1. Checking main files...');
@@ -44,7 +44,7 @@ try {
 console.log('\n3. Testing main module...');
 try {
   // This won't fully work outside MagicMirror, but we can check basic syntax
-  const moduleContent = fs.readFileSync('MMM-GooglePhotos.js', 'utf8');
+  const moduleContent = fs.readFileSync('MMM-FolderPhotos.js', 'utf8');
   if (moduleContent.includes('Module.register')) {
     console.log('✓ Main module appears to be valid MagicMirror module');
   } else {

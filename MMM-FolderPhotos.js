@@ -1,8 +1,8 @@
 //
 //
-// MMM-GooglePhotos
+// MMM-FolderPhotos
 //
-Module.register("MMM-GooglePhotos", {
+Module.register("MMM-FolderPhotos", {
   defaults: {
     rootPath: "~/Pictures/MagicMirror", // Root folder containing album subfolders
     albums: [], // Album folder names to display. If empty, all subfolders will be used
@@ -31,7 +31,7 @@ Module.register("MMM-GooglePhotos", {
   suspended: false,
 
   getStyles: function () {
-    return ["MMM-GooglePhotos.css"];
+    return ["MMM-FolderPhotos.css"];
   },
 
   start: function () {
@@ -79,7 +79,7 @@ Module.register("MMM-GooglePhotos", {
       }
     }
     if (noti === "ERROR") {
-      const current = document.getElementById("GPHOTO_CURRENT");
+      const current = document.getElementById("FPHOTO_CURRENT");
       const errMsgDiv = document.createElement("div");
       errMsgDiv.style.textAlign = "center";
       errMsgDiv.style.lineHeight = "80vh";
@@ -89,20 +89,20 @@ Module.register("MMM-GooglePhotos", {
       current.appendChild(errMsgDiv);
     }
     if (noti === "CLEAR_ERROR") {
-      const current = document.getElementById("GPHOTO_CURRENT");
+      const current = document.getElementById("FPHOTO_CURRENT");
       current.textContent = "";
     }
     if (noti === "UPDATE_STATUS") {
-      let info = document.getElementById("GPHOTO_INFO");
+      let info = document.getElementById("FPHOTO_INFO");
       info.innerHTML = String(payload);
     }
   },
 
   notificationReceived: function (noti, payload, sender) {
-    if (noti === "GPHOTO_NEXT") {
+    if (noti === "FPHOTO_NEXT") {
       this.updatePhotos();
     }
-    if (noti === "GPHOTO_PREVIOUS") {
+    if (noti === "FPHOTO_PREVIOUS") {
       this.updatePhotos(-2);
     }
   },
@@ -117,7 +117,7 @@ Module.register("MMM-GooglePhotos", {
     }
     if (this.suspended) {
       this.sendSocketNotification("MODULE_SUSPENDED_SKIP_UPDATE");
-      let info = document.getElementById("GPHOTO_INFO");
+      let info = document.getElementById("FPHOTO_INFO");
       info.innerHTML = "";
       return;
     }
@@ -155,15 +155,15 @@ Module.register("MMM-GooglePhotos", {
   },
 
   render: function (url, target) {
-    let back = document.getElementById("GPHOTO_BACK");
-    let current = document.getElementById("GPHOTO_CURRENT");
+    let back = document.getElementById("FPHOTO_BACK");
+    let current = document.getElementById("FPHOTO_CURRENT");
     current.textContent = "";
     //current.classList.remove("animated")
-    // let dom = document.getElementById("GPHOTO");
+    // let dom = document.getElementById("FPHOTO");
     back.style.backgroundImage = `url(${url})`;
     current.style.backgroundImage = `url(${url})`;
     current.classList.add("animated");
-    const info = document.getElementById("GPHOTO_INFO");
+    const info = document.getElementById("FPHOTO_INFO");
     const album = Array.isArray(this.albums) ? this.albums.find((a) => a.id === target._albumId) : { id: -1, title: '' };
     if (this.config.autoInfoPosition) {
       let op = (album, target) => {
@@ -209,11 +209,11 @@ Module.register("MMM-GooglePhotos", {
 
   getDom: function () {
     let wrapper = document.createElement("div");
-    wrapper.id = "GPHOTO";
+    wrapper.id = "FPHOTO";
     let back = document.createElement("div");
-    back.id = "GPHOTO_BACK";
+    back.id = "FPHOTO_BACK";
     let current = document.createElement("div");
-    current.id = "GPHOTO_CURRENT";
+    current.id = "FPHOTO_CURRENT";
     if (this.data.position.search("fullscreen") === -1) {
       if (this.config.showWidth) wrapper.style.width = this.config.showWidth + "px";
       if (this.config.showHeight) wrapper.style.height = this.config.showHeight + "px";
@@ -222,7 +222,7 @@ Module.register("MMM-GooglePhotos", {
       current.classList.remove("animated");
     });
     let info = document.createElement("div");
-    info.id = "GPHOTO_INFO";
+    info.id = "FPHOTO_INFO";
     info.innerHTML = "Loading...";
     wrapper.appendChild(back);
     wrapper.appendChild(current);

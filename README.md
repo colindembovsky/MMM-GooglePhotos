@@ -1,4 +1,4 @@
-# MMM-LocalPhotos
+# MMM-FolderPhotos
 
 Display your photos from local folders on [MagicMirror²](https://github.com/MagicMirrorOrg/MagicMirror).
 
@@ -18,7 +18,7 @@ This module displays photos from local folders instead of cloud services. It org
 
 ```javascript
 {
-  module: "MMM-GooglePhotos", // Keep the same module name for compatibility
+  module: "MMM-FolderPhotos",
   position: "top_right",
   config: {
     rootPath: "~/Pictures/MagicMirror", // Root folder containing album subfolders
@@ -167,7 +167,7 @@ autoInfoPosition: (album, photo)=> {
 - Not to show photo info : Add this into your `css/custom.css`.
 
 ```css
-#GPHOTO_INFO {
+#FPHOTO_INFO {
   display: none;
 }
 ```
@@ -175,7 +175,7 @@ autoInfoPosition: (album, photo)=> {
 - To move photo info to other position (e.g: top-left corner): Add this into your `css/custom.css`.
 
 ```css
-#GPHOTO_INFO {
+#FPHOTO_INFO {
   top: 10px;
   left: 10px;
   bottom: inherit;
@@ -186,7 +186,7 @@ autoInfoPosition: (album, photo)=> {
 - Not to show blurred Background : Add this into your `css/custom.css`.
 
 ```css
-#GPHOTO_BACK {
+#FPHOTO_BACK {
   display: none;
 }
 ```
@@ -194,7 +194,7 @@ autoInfoPosition: (album, photo)=> {
 - To cover whole region with image : Add this into your `css/custom.css`.
 
 ```css
-#GPHOTO_CURRENT {
+#FPHOTO_CURRENT {
   background-size: cover;
 }
 ```
@@ -202,7 +202,7 @@ autoInfoPosition: (album, photo)=> {
 - To shrink image and be fully visible on smaller screens : Add this into your `css/custom.css`.
 
 ```css
-#GPHOTO_CURRENT {
+#FPHOTO_CURRENT {
   background-size: contain;
 }
 ```
@@ -223,7 +223,7 @@ autoInfoPosition: (album, photo)=> {
   from {opacity: 0}
   to {opacity: 0.5}
 }
-#GPHOTO_CURRENT {
+#FPHOTO_CURRENT {
   background-size:cover;
   opacity:0.5;
 }

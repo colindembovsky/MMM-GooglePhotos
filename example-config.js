@@ -1,8 +1,8 @@
-// Example configuration for MMM-LocalPhotos (previously MMM-GooglePhotos)
+// Example configuration for MMM-FolderPhotos (previously MMM-GooglePhotos)
 // Add this to your MagicMirror config/config.js file
 
 {
-  module: "MMM-GooglePhotos", // Keep same module name for compatibility
+  module: "MMM-FolderPhotos",
   position: "top_right",
   config: {
     // Root folder containing your photo albums (subfolders)
