@@ -1,15 +1,8 @@
-# MMM-GooglePhotos
+# MMM-LocalPhotos
 
-Display your photos from album of Google Photos on [MagicMirror²](https://github.com/MagicMirrorOrg/MagicMirror).
+Display your photos from local folders on [MagicMirror²](https://github.com/MagicMirrorOrg/MagicMirror).
 
-
-> [!IMPORTANT]  
-> This plugin is not working currently because [new changes in Google Photos API](https://developers.google.com/photos/support/updates) take effect March 2025
->
-> Reference: <br />
-> https://github.com/hermanho/MMM-GooglePhotos/issues/194 <br />
-> https://github.com/hermanho/MMM-GooglePhotos/issues/208
-
+This module displays photos from local folders instead of cloud services. It organizes photos by treating each subfolder in your root directory as an album.
 
 ## Screenshot
 
@@ -25,16 +18,18 @@ Display your photos from album of Google Photos on [MagicMirror²](https://githu
 
 ```javascript
 {
-  module: "MMM-GooglePhotos",
+  module: "MMM-GooglePhotos", // Keep the same module name for compatibility
   position: "top_right",
   config: {
-    albums: [], // Set your album name. like ["My wedding", "family share", "Travle to Paris"]
-    updateInterval: 1000 * 60, // minimum 10 seconds.
+    rootPath: "~/Pictures/MagicMirror", // Root folder containing album subfolders
+    albums: [], // Optional: specify album folder names. If empty, all subfolders will be used
+    updateInterval: 1000 * 60, // minimum 10 seconds
     sort: "new", // "old", "random"
-    uploadAlbum: null, // Only album created by `create_uploadable_album.js`.
+    recursiveSubFolders: true, // Whether to scan subfolders within album folders
+    validExtensions: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'], // Valid image file extensions
     condition: {
-      fromDate: null, // Or "2018-03", RFC ... format available
-      toDate: null, // Or "2019-12-25",
+      fromDate: null, // Or "2018-03", RFC ... format available (based on file modification time)
+      toDate: null, // Or "2019-12-25"
       minWidth: null, // Or 400
       maxWidth: null, // Or 8000
       minHeight: null, // Or 400
@@ -43,60 +38,92 @@ Display your photos from album of Google Photos on [MagicMirror²](https://githu
       maxWHRatio: null,
       // WHRatio = Width/Height ratio ( ==1 : Squared Photo,   < 1 : Portraited Photo, > 1 : Landscaped Photo)
     },
-    showWidth: 1080, // These values will be used for quality of downloaded photos to show. real size to show in your MagicMirror region is recommended.
-    showHeight: 1920,
-    timeFormat: "YYYY/MM/DD HH:mm", // Or `relative` can be used.
+    showWidth: 1080, // Display width for images
+    showHeight: 1920, // Display height for images
+    timeFormat: "YYYY/MM/DD HH:mm", // Or `relative` can be used
   }
 },
 ```
 
 ## Usage
 
-### `albums`
+### Folder Structure
 
-Now this module can access not only your owns but also shared. You can specify album title like this.
+The module expects a folder structure like this:
 
-```js
-albums: ["My wedding", "family share", "Travle to Paris", "from Tom"],
+```
+~/Pictures/MagicMirror/           # Root folder (configurable)
+├── Vacation 2023/                # Album 1
+│   ├── beach.jpg
+│   ├── sunset.png
+│   └── subfolder/                # Optional subfolder (if recursiveSubFolders is true)
+│       └── more_pics.jpg
+├── Family Photos/                # Album 2
+│   ├── birthday.jpg
+│   └── celebration.png
+└── Wedding/                      # Album 3
+    ├── ceremony.jpg
+    └── reception.jpg
 ```
 
-- Caution. Too many albums and photos could make long bootup delay.
-- Remember this. You can only show max 8640 photos in a day. Manage your album what to show, it will make better performance.
+### `rootPath`
+
+- **Required**: The root directory containing your photo albums
+- Can use `~` for home directory (e.g., `~/Pictures/MagicMirror`)
+- Default: `~/Pictures/MagicMirror`
+- Each subfolder in this directory will be treated as an album
+
+### `albums`
+
+You can specify which album folders to display:
+
+```js
+albums: ["Vacation 2023", "Family Photos", "Wedding"],
+```
+
+- If empty (`[]`), all subfolders in `rootPath` will be used as albums
+- Only folders containing valid image files will be included
+
+### `recursiveSubFolders`
+
+- `true` (default): Scan subfolders within album folders for additional images
+- `false`: Only scan the root level of each album folder
+
+### `validExtensions`
+
+Array of valid image file extensions to include:
+
+```js
+validExtensions: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+```
 
 ### `updateInterval`
 
-- Minimum `updateInterval` is 10 seconds. Too often update could makes API quota drains or network burden.
+- Minimum `updateInterval` is 10 seconds
+- The module will periodically rescan folders for new or changed images
 
 ### `sort`
 
-- `new`, `old`, `random` are supported.
-
-#### **`uploadAlbum`**
-
-- If you set this, you can upload pictures from MagicMirror to Google Photos through `GPHOTO_UPLOAD` notification.
-
-```js
-this.sendNotification("GPHOTO_UPLOAD", path);
-```
-
-- This album **SHOULD** be created by `create_uploadable_album.js`.
-
-```sh
-node create_uploadable_album.js MyMagicMirrorAlbum
-```
-
-- At this moment, `MMM-Selfieshot` and `MMM-TelegramBot` can upload their pictures through this feature.
+- `new`: Sort by file modification time (newest first)
+- `old`: Sort by file modification time (oldest first) 
+- `random`: Random order
 
 ### `condition`
 
-- You can filter photos by this object.
-- `fromDate` : If set, The photos which was created after this value will be loaded. (e.g: `fromDate:"2015-12-25"` or `fromDate:"6 Mar 17 21:22 UT"`)
-- `toDate` : If set, The photos which was created before this value will be loaded. (e.g: `toDate:"Mon 06 Mar 2017 21:22:23 z"` or `toDate:"20130208"`)
-- ISO 8601 and RFC 2822 is supported for `fromDate` and `toDate`.
-- `minWidth`, `maxWidth`, `minHeight`, `maxHeight` : If set, the photos have these value as original dimensiont will be loaded. You can use these values to avoid too big or too small pictures(like icons)
-- `minWHRatio`, `maxWHRatio` : With these values, you can get only portrait photos(or landscaped, or squared)
-- **WHRatio** is `width / height`. So `=1` will be squared dimension. `>1` will be landscaped. `<1` will be portrait.
-- Example:
+- You can filter photos by various criteria
+- `fromDate`/`toDate`: Filter by file modification time
+- Image dimension and ratio filters work the same as before
+- All date comparisons use the file's modification time
+
+## Migration from Google Photos
+
+If you're migrating from the Google Photos version:
+
+1. Download your photos from Google Photos
+2. Organize them into folders (each folder becomes an album)
+3. Place them in your configured `rootPath`
+4. Update your configuration to use the new settings
+5. Remove any Google Photos authentication files
 
 ```js
 condition: {

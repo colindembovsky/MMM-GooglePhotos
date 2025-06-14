@@ -9,6 +9,7 @@ const NodeHelper = require("node_helper");
 const Log = require("logger");
 const crypto = require("crypto");
 const { shuffle } = require("./shuffle.js");
+const sizeOf = require('image-size'); // We'll need to add this dependency
 
 const ONE_DAY = 24 * 60 * 60 * 1000; // 1 day in milliseconds
 
@@ -264,10 +265,8 @@ const NodeHeleprObject = {
       const stats = fs.statSync(filePath);
       let dimensions = { width: 0, height: 0 };
       
-      // Try to get image dimensions, but don't fail if we can't
       try {
-        // We'll try to use a simple approach without requiring image-size library initially
-        dimensions = { width: 1920, height: 1080 }; // Default dimensions
+        dimensions = sizeOf(filePath);
       } catch (sizeError) {
         this.log_debug("Could not get dimensions for:", filePath);
       }
@@ -325,9 +324,9 @@ const NodeHeleprObject = {
     const cacheHash = await this.readCacheConfig("CACHE_HASH");
     const configHash = await this.calculateConfigHash();
     if (!cacheHash || cacheHash !== configHash) {
-      this.log_info("Config has changed. Ignore cache");
+      this.log_info("Config or token has changed. Ignore cache");
       this.log_debug("hash: ", { cacheHash, configHash });
-      this.sendSocketNotification("UPDATE_STATUS", "Loading from local files...");
+      this.sendSocketNotification("UPDATE_STATUS", "Loading from Google Photos...");
       return;
     }
     this.log_info("Loading cache data");
@@ -338,23 +337,23 @@ const NodeHeleprObject = {
     const notExpiredCacheAlbum = cacheAlbumDt && (Date.now() - cacheAlbumDt.getTime() < ONE_DAY);
     this.log_debug("notExpiredCacheAlbum", { cacheAlbumDt, notExpiredCacheAlbum });
     if (notExpiredCacheAlbum && fs.existsSync(this.CACHE_ALBUMNS_PATH)) {
-      this.log_info("Loading cached albums list");
+      this.log_info("Loading cached albumns list");
       try {
         const data = await readFile(this.CACHE_ALBUMNS_PATH, "utf-8");
-        this.selectedAlbums = JSON.parse(data.toString());
-        this.log_debug("successfully loaded selectedAlbums");
-        this.sendSocketNotification("UPDATE_ALBUMS", this.selectedAlbums); // for fast startup
+        this.selecetedAlbums = JSON.parse(data.toString());
+        this.log_debug("successfully loaded selecetedAlbums");
+        this.sendSocketNotification("UPDATE_ALBUMS", this.selecetedAlbums); // for fast startup
       } catch (err) {
-        this.log_error("unable to load selectedAlbums cache", err);
+        this.log_error("unable to load selecetedAlbums cache", err);
       }
     }
 
-    //load cached photo list - if available
+    //load cached list - if available
     const cachePhotoListDt = new Date(await this.readCacheConfig("CACHE_PHOTOLIST_PATH"));
     const notExpiredCachePhotoList = cachePhotoListDt && (Date.now() - cachePhotoListDt.getTime() < ONE_DAY);
     this.log_debug("notExpiredCachePhotoList", { cachePhotoListDt, notExpiredCachePhotoList });
     if (notExpiredCachePhotoList && fs.existsSync(this.CACHE_PHOTOLIST_PATH)) {
-      this.log_info("Loading cached photo list");
+      this.log_info("Loading cached albumns list");
       try {
         const data = await readFile(this.CACHE_PHOTOLIST_PATH, "utf-8");
         this.localPhotoList = JSON.parse(data.toString());
@@ -367,6 +366,7 @@ const NodeHeleprObject = {
         this.log_error("unable to load photo list cache", err);
       }
     }
+
   },
 
   prepAndSendChunk: async function (desiredChunk = 50) {
@@ -378,103 +378,358 @@ const NodeHeleprObject = {
         this.localPhotoPntr = 0;
         this.lastLocalPhotoPntr = 0;
       }
-      let numItemsToRefresh = Math.min(desiredChunk, this.localPhotoList.length - this.localPhotoPntr, 50);
+      let numItemsToRefresh = Math.min(desiredChunk, this.localPhotoList.length - this.localPhotoPntr, 50); //50 is api limit
       this.log_debug("num to ref: ", numItemsToRefresh, ", DesChunk: ", desiredChunk, ", totalLength: ", this.localPhotoList.length, ", Pntr: ", this.localPhotoPntr);
 
       // refresh them
       let list = [];
       if (numItemsToRefresh > 0) {
-        // For local files, we don't need to "refresh" them from an API, they're already ready
-        list = this.localPhotoList.slice(this.localPhotoPntr, this.localPhotoPntr + numItemsToRefresh);
+        list = await GPhotos.updateTheseMediaItems(this.localPhotoList.slice(this.localPhotoPntr, this.localPhotoPntr + numItemsToRefresh));
       }
 
       if (list.length > 0) {
-        this.lastLocalPhotoPntr = this.localPhotoPntr;
-        this.localPhotoPntr += list.length;
+        // update the localList
+        this.localPhotoList.splice(this.localPhotoPntr, list.length, ...list);
+
+        // send updated pics
         this.sendSocketNotification("MORE_PICS", list);
+
+        // update pointer
+        this.lastLocalPhotoPntr = this.localPhotoPntr;
+        this.localPhotoPntr = this.localPhotoPntr + list.length;
+        this.log_debug("refreshed: ", list.length, ", totalLength: ", this.localPhotoList.length, ", Pntr: ", this.localPhotoPntr);
       } else {
-        this.sendSocketNotification("MORE_PICS", []);
+        this.log_error("couldn't send ", list.length, " pics");
       }
-    } catch (error) {
-      this.log_error("Error in prepAndSendChunk:", error.message);
-      this.sendSocketNotification("MORE_PICS", []);
+    } catch (err) {
+      this.log_error("failed to refresh and send chunk: ");
+      this.log_error(error_to_string(err));
     }
   },
 
-  readFileSafe: async function (filename, description = '') {
+  /**
+   * @returns {Promise<GooglePhotos.Album[]>}
+   */
+  getAlbums: async function () {
     try {
-      if (fs.existsSync(filename)) {
-        return await readFile(filename, "utf-8");
+      let r = await GPhotos.getAlbums();
+      const configHash = await this.calculateConfigHash();
+      if (configHash) {
+        await this.saveCacheConfig("CACHE_HASH", configHash);
       }
-    } catch (error) {
-      this.log_error("Error reading file", description, filename, error.message);
-    }
-    return undefined;
-  },
-
-  readCacheConfig: async function (key) {
-    const configStr = await this.readFileSafe(this.CACHE_CONFIG, "cache config");
-    if (configStr) {
-      try {
-        const config = JSON.parse(configStr);
-        return config[key];
-      } catch (error) {
-        this.log_error("Error parsing cache config:", error.message);
+      return r;
+    } catch (err) {
+      if (err instanceof ConfigFileError || err instanceof AuthError) {
+        this.sendSocketNotification("ERROR", err.message);
       }
-    }
-    return undefined;
-  },
-
-  saveCache: async function () {
-    try {
-      // Save albums cache
-      if (this.selectedAlbums.length > 0) {
-        await writeFile(this.CACHE_ALBUMNS_PATH, JSON.stringify(this.selectedAlbums, null, 2));
-        this.log_debug("Albums cache saved");
-      }
-
-      // Save photo list cache
-      if (this.localPhotoList.length > 0) {
-        await writeFile(this.CACHE_PHOTOLIST_PATH, JSON.stringify(this.localPhotoList, null, 2));
-        this.log_debug("Photo list cache saved");
-      }
-
-      // Save config with timestamps
-      const cacheConfig = {
-        CACHE_HASH: await this.calculateConfigHash(),
-        CACHE_ALBUMNS_PATH: new Date().toISOString(),
-        CACHE_PHOTOLIST_PATH: new Date().toISOString()
-      };
-      await writeFile(this.CACHE_CONFIG, JSON.stringify(cacheConfig, null, 2));
-      this.log_debug("Cache config saved");
-
-    } catch (error) {
-      this.log_error("Error saving cache:", error.message);
+      this.log_error(error_to_string(err));
+      throw err;
     }
   },
 
   startScanning: function () {
-    this.log_info("Start Album scanning. Timer is started");
-    this.scanTimer = setTimeout(() => {
-      this.updatePhotos();
-    }, this.config.scanInterval);
+    const fn = () => {
+      const nextScanDt = new Date(Date.now() + this.scanInterval);
+      this.scanJob().then(() => {
+        this.log_info("Next scan will be at", nextScanDt);
+      });
+    };
+    // set up interval, then 1 fail won't stop future scans
+    this.scanTimer = setInterval(fn, this.scanInterval);
+    // call for first time
+    fn();
   },
 
-  updatePhotos: async function () {
-    this.log_info("Update photos");
-    clearTimeout(this.scanTimer);
-
+  scanJob: async function () {
+    this.log_info("Start Album scanning");
+    this.queue = null;
+    await this.getAlbumList();
     try {
-      await this.scanForPhotos();
-      this.sendSocketNotification("UPDATE_ALBUMS", this.selectedAlbums);
-    } catch (error) {
-      this.log_error("Error updating photos:", error.message);
+      if (this.selecetedAlbums.length > 0) {
+        this.photos = await this.getImageList();
+        return true;
+      } else {
+        this.log_warn("There is no album to get photos.");
+        return false;
+      }
+    } catch (err) {
+      this.log_error(error_to_string(err));
     }
+  },
 
-    this.scanTimer = setTimeout(() => {
-      this.updatePhotos();
-    }, this.config.scanInterval);
-  }
-};
+  getAlbumList: async function () {
+    this.log_info("Getting album list");
+    /**
+     * @type {GooglePhotos.Album[]}
+     */
+    let albums = await this.getAlbums();
+    if (this.config.uploadAlbum) {
+      const uploadAlbum = albums.find((a) => a.title === this.config.uploadAlbum);
+      if (uploadAlbum) {
+        if (uploadAlbum.hasOwnProperty("shareInfo") && uploadAlbum.isWriteable) {
+          this.log_info("Confirmed Uploadable album:", this.config.uploadAlbum, uploadAlbum.id);
+          this.uploadAlbumId = uploadAlbum.id;
+          this.sendSocketNotification("UPLOADABLE_ALBUM", this.config.uploadAlbum);
+        } else {
+          this.log_error("This album is not uploadable:", this.config.uploadAlbum);
+        }
+      } else {
+        this.log_error("Can't find uploadable album :", this.config.uploadAlbum);
+      }
+    }
+    /**
+     * @type {GooglePhotos.Album[]}
+     */
+    let selecetedAlbums = [];
+    for (let ta of this.albumsFilters) {
+      const matches = albums.filter((a) => {
+        if (ta instanceof RE2) {
+          this.log_debug(`RE2 match ${ta.source} -> '${a.title}' : ${ta.test(a.title)}`);
+          return ta.test(a.title);
+        }
+        else {
+          return ta === a.title;
+        }
+      });
+      if (matches.length === 0) {
+        this.log_warn(`Can't find "${ta instanceof RE2 ? ta.source : ta}" in your album list.`);
+      }
+      else {
+        selecetedAlbums.push(...matches);
+      }
+    }
+    selecetedAlbums = Set(selecetedAlbums).toArray();
+    this.log_info("Finish Album scanning. Properly scanned :", selecetedAlbums.length);
+    this.log_info("Albums:", selecetedAlbums.map((a) => a.title).join(", "));
+    this.writeFileSafe(this.CACHE_ALBUMNS_PATH, JSON.stringify(selecetedAlbums, null, 4), "Album list cache");
+    this.saveCacheConfig("CACHE_ALBUMNS_PATH", new Date().toISOString());
 
-module.exports = NodeHelper.create(NodeHeleprObject);
+    for (let a of selecetedAlbums) {
+      let url = a.coverPhotoBaseUrl + "=w160-h160-c";
+      let fpath = path.join(this.path, "cache", a.id);
+      let file = fs.createWriteStream(fpath);
+      const response = await fetch(url);
+      await finished(Readable.fromWeb(response.body).pipe(file));
+    }
+    this.selecetedAlbums = selecetedAlbums;
+    this.log_info("getAlbumList done");
+    this.sendSocketNotification("INITIALIZED", selecetedAlbums);
+  },
+
+  getImageList: async function () {
+    this.log_info("Getting image list");
+    let condition = this.config.condition;
+    let photoCondition = (photo) => {
+      if (!photo.hasOwnProperty("mediaMetadata")) return false;
+      let data = photo.mediaMetadata;
+      if (data.hasOwnProperty("video")) return false;
+      if (!data.hasOwnProperty("photo")) return false;
+      let ct = moment(data.creationTime);
+      if (condition.fromDate && moment(condition.fromDate).isAfter(ct)) return false;
+      if (condition.toDate && moment(condition.toDate).isBefore(ct)) return false;
+      if (condition.minWidth && Number(condition.minWidth) > Number(data.width)) return false;
+      if (condition.minHeight && Number(condition.minHeight) > Number(data.height)) return false;
+      if (condition.maxWidth && Number(condition.maxWidth) < Number(data.width)) return false;
+      if (condition.maxHeight && Number(condition.maxHeight) < Number(data.height)) return false;
+      let whr = Number(data.width) / Number(data.height);
+      if (condition.minWHRatio && Number(condition.minWHRatio) > whr) return false;
+      if (condition.maxWHRatio && Number(condition.maxWHRatio) < whr) return false;
+      return true;
+    };
+    // let sort = (a, b) => {
+    //   let at = moment(a.mediaMetadata.creationTime);
+    //   let bt = moment(b.mediaMetadata.creationTime);
+    //   if (at.isBefore(bt) && this.config.sort === "new") return 1;
+    //   if (at.isAfter(bt) && this.config.sort === "old") return 1;
+    //   return -1;
+    // };
+    /** @type {MediaItem[]} */
+    let photos = [];
+    try {
+      for (let album of this.selecetedAlbums) {
+        this.log_info(`Prepare to get photo list from '${album.title}'`);
+        let list = await GPhotos.getImageFromAlbum(album.id, photoCondition);
+        list.forEach((i) => {
+          i._albumTitle = album.title;
+        });
+        this.log_info(`Got ${list.length} photo(s) from '${album.title}'`);
+        photos = photos.concat(list);
+      }
+      if (photos.length > 0) {
+        if (this.config.sort === "new" || this.config.sort === "old") {
+          photos.sort((a, b) => {
+            let at = moment(a.mediaMetadata.creationTime);
+            let bt = moment(b.mediaMetadata.creationTime);
+            if (at.isBefore(bt) && this.config.sort === "new") return 1;
+            if (at.isAfter(bt) && this.config.sort === "old") return 1;
+            return -1;
+          });
+        } else {
+          shuffle(photos);
+        }
+        this.log_info(`Total indexed photos: ${photos.length}`);
+        this.localPhotoList = [...photos];
+        this.localPhotoPntr = 0;
+        this.lastLocalPhotoPntr = 0;
+        this.prepAndSendChunk(50).then();
+        this.writeFileSafe(this.CACHE_PHOTOLIST_PATH, JSON.stringify(photos, null, 4), "Photo list cache");
+        this.saveCacheConfig("CACHE_PHOTOLIST_PATH", new Date().toISOString());
+      } else {
+        this.log_warn(`photos.length is 0`);
+      }
+
+      return photos;
+    } catch (err) {
+      this.log_error(error_to_string(err));
+    }
+  },
+
+  stop: function () {
+    clearInterval(this.scanTimer);
+  },
+
+  readFileSafe: async function (filePath, fileDescription) {
+    if (!fs.existsSync(filePath)) {
+      this.log_warn(`${fileDescription} does not exist: ${filePath}`);
+      return null;
+    }
+    try {
+      const data = await readFile(filePath, "utf-8");
+      return data.toString();
+    } catch (err) {
+      this.log_error(`unable to read ${fileDescription}: ${filePath}`);
+      this.log_error(error_to_string(err));
+    }
+  },
+
+  writeFileSafe: async function (filePath, data, fileDescription) {
+    try {
+      await writeFile(filePath, data);
+      this.log_debug(fileDescription + " saved");
+    } catch (err) {
+      this.log_error(`unable to write ${fileDescription}: ${filePath}`);
+      this.log_error(error_to_string(err));
+    }
+  },
+
+  readCacheConfig: async function (key) {
+    try {
+      let config = {};
+      if (fs.existsSync(this.CACHE_CONFIG)) {
+        const configStr = await this.readFileSafe(this.CACHE_CONFIG, "Cache Config");
+        config = JSON.parse(configStr || null);
+      }
+      if (Object(config).hasOwnProperty(key)) {
+        return config[key];
+      }
+      else {
+        return undefined;
+      }
+    } catch (err) {
+      this.log_error(`unable to read Cache Config`);
+      this.log_error(error_to_string(err));
+    }
+  },
+
+  saveCacheConfig: async function (key, value) {
+    try {
+      let config = {};
+      if (fs.existsSync(this.CACHE_CONFIG)) {
+        const configStr = await this.readFileSafe(this.CACHE_CONFIG, "Cache config JSON");
+        config = JSON.parse(configStr || null) || {};
+      }
+      config[key] = value;
+      await this.writeFileSafe(this.CACHE_CONFIG, JSON.stringify(config, null, 4), "Cache config JSON");
+      this.log_debug(`Cache config ${key} saved`);
+    } catch (err) {
+      this.log_error(`unable to write Cache Config`);
+      this.log_error(error_to_string(err));
+    }
+  },
+
+  scanForAlbums: async function () {
+    this.log_info("Scanning for albums in:", this.config.rootPath);
+    
+    try {
+      const entries = fs.readdirSync(this.config.rootPath, { withFileTypes: true });
+      const albumFolders = entries.filter(entry => entry.isDirectory());
+      
+      this.selectedAlbums = [];
+      
+      for (const folder of albumFolders) {
+        const albumPath = path.join(this.config.rootPath, folder.name);
+        
+        // If specific albums are configured, only include those
+        if (this.config.albums.length > 0 && !this.config.albums.includes(folder.name)) {
+          continue;
+        }
+        
+        // Check if folder contains any images
+        const hasImages = await this.folderContainsImages(albumPath);
+        if (hasImages) {
+          const album = {
+            id: crypto.createHash('md5').update(albumPath).digest('hex'),
+            title: folder.name,
+            path: albumPath,
+            mediaItemsCount: 0 // Will be updated during photo scanning
+          };
+          this.selectedAlbums.push(album);
+        }
+      }
+      
+      this.log_info(`Found ${this.selectedAlbums.length} albums:`, this.selectedAlbums.map(a => a.title).join(', '));
+      
+    } catch (error) {
+      this.log_error("Error scanning for albums:", error.message);
+      throw error;
+    }
+  },
+
+  folderContainsImages: async function (folderPath) {
+    try {
+      const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        if (entry.isFile()) {
+          const ext = path.extname(entry.name).toLowerCase();
+          if (this.config.validExtensions.includes(ext)) {
+            return true;
+          }
+        } else if (entry.isDirectory() && this.config.recursiveSubFolders) {
+          const subFolderPath = path.join(folderPath, entry.name);
+          const hasImages = await this.folderContainsImages(subFolderPath);
+          if (hasImages) return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      this.log_error("Error checking folder for images:", error.message);
+      return false;
+    }
+  },
+
+  scanForPhotos: async function () {
+    this.log_info("Scanning for photos...");
+    this.localPhotoList = [];
+    
+    for (const album of this.selectedAlbums) {
+      const photos = await this.scanFolderForPhotos(album.path, album.id);
+      this.localPhotoList.push(...photos);
+      album.mediaItemsCount = photos.length;
+    }
+    
+    // Apply sorting
+    if (this.config.sort === "random") {
+      shuffle(this.localPhotoList);
+    } else if (this.config.sort === "new") {
+      this.localPhotoList.sort((a, b) => new Date(b.creationTime) - new Date(a.creationTime));
+    } else if (this.config.sort === "old") {
+      this.localPhotoList.sort((a, b) => new Date(a.creationTime) - new Date(b.creationTime));
+    }
+    
+    this.log_info(`Found ${this.localPhotoList.length} photos total`);
+    
+    // Save to cache
+    await this.saveCache();
+    
+    // Send initial

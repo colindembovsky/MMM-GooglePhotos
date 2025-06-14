@@ -4,13 +4,15 @@
 //
 Module.register("MMM-GooglePhotos", {
   defaults: {
-    albums: [],
+    rootPath: "~/Pictures/MagicMirror", // Root folder containing album subfolders
+    albums: [], // Album folder names to display. If empty, all subfolders will be used
     updateInterval: 1000 * 30, // minimum 10 seconds.
-    sort: "new", // "old", "random"
-    uploadAlbum: null, // Only for created by `create_uploadable_album.js`
+    sort: "new", // "old", "random" 
+    recursiveSubFolders: true, // Whether to scan subfolders within album folders
+    validExtensions: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'], // Valid image file extensions
     condition: {
-      fromDate: null, // Or "2018-03", RFC ... format available
-      toDate: null, // Or "2019-12-25",
+      fromDate: null, // Or "2018-03", RFC ... format available (based on file modification time)
+      toDate: null, // Or "2019-12-25"
       minWidth: null, // Or 400
       maxWidth: null, // Or 8000
       minHeight: null, // Or 400
@@ -19,9 +21,9 @@ Module.register("MMM-GooglePhotos", {
       maxWHRatio: null,
       // WHRatio = Width/Height ratio ( ==1 : Squared Photo,   < 1 : Portraited Photo, > 1 : Landscaped Photo)
     },
-    showWidth: 1080, // These values will be used for quality of downloaded photos to show. real size to show in your MagicMirror region is recommended.
-    showHeight: 1920,
-    timeFormat: "YYYY/MM/DD HH:mm",
+    showWidth: 1080, // Display width for images
+    showHeight: 1920, // Display height for images
+    timeFormat: "YYYY/MM/DD HH:mm", // Or `relative` can be used
     autoInfoPosition: false,
   },
   requiresVersion: "2.24.0",
@@ -33,7 +35,6 @@ Module.register("MMM-GooglePhotos", {
   },
 
   start: function () {
-    this.uploadableAlbum = null;
     this.albums = null;
     this.scanned = [];
     this.updateTimer = null;
@@ -43,25 +44,19 @@ Module.register("MMM-GooglePhotos", {
     if (this.config.updateInterval < 1000 * 10) this.config.updateInterval = 1000 * 10;
     this.config.condition = Object.assign({}, this.defaults.condition, this.config.condition);
 
-    const config = { ...this.config };
-    for (let i = 0; i < config.albums.length; i++) {
-      const album = config.albums[i];
-      if (album instanceof RegExp) {
-        config.albums[i] = {
-          source: album.source,
-          flags: album.flags,
-        };
-      }
+    // Expand tilde in rootPath
+    if (this.config.rootPath.startsWith('~/')) {
+      const os = require('os');
+      this.config.rootPath = this.config.rootPath.replace('~', os.homedir());
     }
 
+    const config = { ...this.config };
+    
     this.sendSocketNotification("INIT", config);
     this.dynamicPosition = 0;
   },
 
   socketNotificationReceived: function (noti, payload) {
-    if (noti === "UPLOADABLE_ALBUM") {
-      this.uploadableAlbum = payload;
-    }
     if (noti === "INITIALIZED") {
       this.albums = payload;
       //set up timer once initialized, more robust against faults
@@ -110,9 +105,6 @@ Module.register("MMM-GooglePhotos", {
     if (noti === "GPHOTO_PREVIOUS") {
       this.updatePhotos(-2);
     }
-    if (noti === "GPHOTO_UPLOAD") {
-      this.sendSocketNotification("UPLOAD", payload);
-    }
   },
 
   updatePhotos: function (dir = 0) {
@@ -135,7 +127,7 @@ Module.register("MMM-GooglePhotos", {
       this.index -= this.scanned.length;
     }
     let target = this.scanned[this.index];
-    let url = target.baseUrl + `=w${this.config.showWidth}-h${this.config.showHeight}`;
+    let url = `file://${target.path}`;
     this.ready(url, target);
     this.index++;
     if (this.index >= this.scanned.length) {
@@ -197,13 +189,14 @@ Module.register("MMM-GooglePhotos", {
     info.innerHTML = "";
     let albumCover = document.createElement("div");
     albumCover.classList.add("albumCover");
-    albumCover.style.backgroundImage = `url(modules/MMM-GooglePhotos/cache/${album.id})`;
+    // For local files, we don't have album covers, so we'll use a generic folder icon
+    albumCover.style.backgroundImage = ""; 
     let albumTitle = document.createElement("div");
     albumTitle.classList.add("albumTitle");
     albumTitle.innerHTML = album.title;
     let photoTime = document.createElement("div");
     photoTime.classList.add("photoTime");
-    photoTime.innerHTML = this.config.timeFormat === "relative" ? moment(target.mediaMetadata.creationTime).fromNow() : moment(target.mediaMetadata.creationTime).format(this.config.timeFormat);
+    photoTime.innerHTML = this.config.timeFormat === "relative" ? moment(target.creationTime).fromNow() : moment(target.creationTime).format(this.config.timeFormat);
     let infoText = document.createElement("div");
     infoText.classList.add("infoText");
 
