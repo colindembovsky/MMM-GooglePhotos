@@ -3,7 +3,6 @@
 // Simple test script to verify the MMM-FolderPhotos module can load
 // Run this from the module directory: node test.js
 
-const path = require('path');
 const fs = require('fs');
 
 console.log('Testing MMM-FolderPhotos module...');
@@ -13,7 +12,7 @@ const mainFiles = [
   'MMM-FolderPhotos.js',
   'node_helper.js',
   'package.json',
-  'MMM-FolderPhotos.css'
+  'MMM-FolderPhotos.css',
 ];
 
 console.log('\n1. Checking main files...');
@@ -83,7 +82,7 @@ const testConfig = {
   condition: {},
   showWidth: 1080,
   showHeight: 1920,
-  timeFormat: "YYYY/MM/DD HH:mm"
+  timeFormat: "YYYY/MM/DD HH:mm",
 };
 
 // Expand tilde

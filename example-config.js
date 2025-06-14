@@ -1,7 +1,7 @@
-// Example configuration for MMM-FolderPhotos (previously MMM-GooglePhotos)
+// Example configuration for MMM-FolderPhotos
 // Add this to your MagicMirror config/config.js file
 
-{
+module.exports = {
   module: "MMM-FolderPhotos",
   position: "top_right",
   config: {
@@ -45,5 +45,5 @@
     
     // Auto-position photo info
     autoInfoPosition: false,
-  }
-},
+  },
+};

@@ -4,7 +4,6 @@ const fs = require("fs");
 const { writeFile, readFile } = require("fs/promises");
 const path = require("path");
 const moment = require("moment");
-const { Set } = require('immutable');
 const NodeHelper = require("node_helper");
 const Log = require("logger");
 const crypto = require("crypto");
@@ -136,7 +135,7 @@ const NodeHeleprObject = {
   },
 
   calculateConfigHash: async function () {
-    // For local files, we don't need Google auth tokens
+    // Initialize folder scanning
     const hash = crypto.createHash("sha256").update(JSON.stringify(this.config)).digest("hex");
     return hash;
   },
@@ -165,7 +164,7 @@ const NodeHeleprObject = {
             id: crypto.createHash('md5').update(albumPath).digest('hex'),
             title: folder.name,
             path: albumPath,
-            mediaItemsCount: 0 // Will be updated during photo scanning
+            mediaItemsCount: 0, // Will be updated during photo scanning
           };
           this.selectedAlbums.push(album);
         }
@@ -268,8 +267,8 @@ const NodeHeleprObject = {
       try {
         // We'll try to use a simple approach without requiring image-size library initially
         dimensions = { width: 1920, height: 1080 }; // Default dimensions
-      } catch (sizeError) {
-        this.log_debug("Could not get dimensions for:", filePath);
+      } catch (error) {
+        this.log_debug("Could not get dimensions for:", filePath, error.message);
       }
       
       return {
@@ -279,7 +278,7 @@ const NodeHeleprObject = {
         creationTime: stats.mtime.toISOString(),
         width: dimensions.width || 0,
         height: dimensions.height || 0,
-        _albumId: albumId
+        _albumId: albumId,
       };
     } catch (error) {
       this.log_error("Error creating photo object for:", filePath, error.message);
@@ -443,7 +442,7 @@ const NodeHeleprObject = {
       const cacheConfig = {
         CACHE_HASH: await this.calculateConfigHash(),
         CACHE_ALBUMNS_PATH: new Date().toISOString(),
-        CACHE_PHOTOLIST_PATH: new Date().toISOString()
+        CACHE_PHOTOLIST_PATH: new Date().toISOString(),
       };
       await writeFile(this.CACHE_CONFIG, JSON.stringify(cacheConfig, null, 2));
       this.log_debug("Cache config saved");
@@ -474,7 +473,7 @@ const NodeHeleprObject = {
     this.scanTimer = setTimeout(() => {
       this.updatePhotos();
     }, this.config.scanInterval);
-  }
+  },
 };
 
 module.exports = NodeHelper.create(NodeHeleprObject);

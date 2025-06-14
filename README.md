@@ -115,16 +115,6 @@ validExtensions: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
 - Image dimension and ratio filters work the same as before
 - All date comparisons use the file's modification time
 
-## Migration from Google Photos
-
-If you're migrating from the Google Photos version:
-
-1. Download your photos from Google Photos
-2. Organize them into folders (each folder becomes an album)
-3. Place them in your configured `rootPath`
-4. Update your configuration to use the new settings
-5. Remove any Google Photos authentication files
-
 ```js
 condition: {
   fromDate: "2018-01-01", // I don't want older photos than this.

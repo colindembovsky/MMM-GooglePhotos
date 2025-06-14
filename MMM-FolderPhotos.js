@@ -98,7 +98,7 @@ Module.register("MMM-FolderPhotos", {
     }
   },
 
-  notificationReceived: function (noti, payload, sender) {
+  notificationReceived: function (noti) {
     if (noti === "FPHOTO_NEXT") {
       this.updatePhotos();
     }
@@ -166,6 +166,7 @@ Module.register("MMM-FolderPhotos", {
     const info = document.getElementById("FPHOTO_INFO");
     const album = Array.isArray(this.albums) ? this.albums.find((a) => a.id === target._albumId) : { id: -1, title: '' };
     if (this.config.autoInfoPosition) {
+      // eslint-disable-next-line no-unused-vars
       let op = (album, target) => {
         let now = new Date();
         let q = Math.floor(now.getMinutes() / 15);

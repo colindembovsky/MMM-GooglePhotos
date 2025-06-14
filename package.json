@@ -1,11 +1,11 @@
 {
   "name": "mmm-folderphotos",
-  "version": "2.1.8",
-  "description": "MagicMirror² module to display your photos from local folders",
+  "version": "1.0.0",
+  "description": "MagicMirror² module to display your photos from local folders, based of MMM-GooglePhotos.",
   "license": "MIT",
-  "author": "eouia0819@gmail.com",
+  "author": "colindembovsky@gmail.com",
   "contributors": [
-    "Original MMM-GooglePhotos contributors: https://github.com/hermanho/MMM-GooglePhotos/graphs/contributors"
+    "Adapted from MMM-GooglePhotos: https://github.com/hermanho/MMM-GooglePhotos/graphs/contributors"
   ],
   "scripts": {
     "install-prod": "npm install --no-audit --no-fund --no-update-notifier --only=prod --omit=dev",
