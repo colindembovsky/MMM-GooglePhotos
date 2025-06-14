@@ -26,7 +26,7 @@ Module.register("MMM-FolderPhotos", {
     timeFormat: "YYYY/MM/DD HH:mm", // Or `relative` can be used
     autoInfoPosition: false,
   },
-  requiresVersion: "2.24.0",
+  requiresVersion: "2.16.0",
 
   suspended: false,
 
@@ -108,7 +108,7 @@ Module.register("MMM-FolderPhotos", {
   },
 
   updatePhotos: function (dir = 0) {
-    Log.debug("Updating photos..");
+    Log.info("Updating photos..");
     this.firstScan = false;
 
     if (this.scanned.length === 0) {
