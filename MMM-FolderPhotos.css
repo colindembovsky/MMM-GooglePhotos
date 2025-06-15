@@ -67,16 +67,6 @@
   text-align:left;
 }
 
-#FPHOTO_INFO .albumCover {
-  width:48px;
-  height:48px;
-  border-radius:50%;
-  background-size:cover;
-  background-repeat:no-repeat;
-  background-position:center;
-  float:left;
-}
-
 #FPHOTO_INFO .albumTitle {
   color:#FDD;
 }
@@ -86,8 +76,6 @@
 }
 
 #FPHOTO_INFO .infoText {
-  float:right;
-  margin-left: 12px;
   padding-right: 12px;
   padding-top:6px;
   font-size:18px;

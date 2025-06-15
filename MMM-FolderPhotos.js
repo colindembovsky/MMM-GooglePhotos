@@ -182,10 +182,6 @@ Module.register("MMM-FolderPhotos", {
       info.style.setProperty("--right", right);
     }
     info.innerHTML = "";
-    let albumCover = document.createElement("div");
-    albumCover.classList.add("albumCover");
-    // For local files, we don't have album covers, so we'll use a generic folder icon
-    albumCover.style.backgroundImage = ""; 
     let albumTitle = document.createElement("div");
     albumTitle.classList.add("albumTitle");
     albumTitle.innerHTML = album.title;
@@ -195,7 +191,6 @@ Module.register("MMM-FolderPhotos", {
     let infoText = document.createElement("div");
     infoText.classList.add("infoText");
 
-    info.appendChild(albumCover);
     infoText.appendChild(albumTitle);
     infoText.appendChild(photoTime);
     info.appendChild(infoText);
