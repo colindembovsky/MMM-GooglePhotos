@@ -138,12 +138,31 @@ Module.register("MMM-FolderPhotos", {
   ready: function (url, target) {
     let hidden = document.createElement("img");
     const _this = this;
+    
+    // Add timeout to prevent hanging requests
+    const timeoutId = setTimeout(() => {
+      hidden.src = '';
+      hidden.onload = null;
+      hidden.onerror = null;
+      hidden = null; // Help GC
+    }, 10000); // 10 second timeout
+    
     hidden.onerror = (event, source, lineno, colno, error) => {
+      clearTimeout(timeoutId);
       const errObj = { url, event, source, lineno, colno, error };
       this.sendSocketNotification("IMAGE_LOAD_FAIL", errObj);
+      // Clean up
+      hidden.onload = null;
+      hidden.onerror = null;
+      hidden = null;
     };
     hidden.onload = () => {
+      clearTimeout(timeoutId);
       _this.render(url, target);
+      // Clean up
+      hidden.onload = null;
+      hidden.onerror = null;
+      hidden = null;
     };
     hidden.src = url;
   },
@@ -208,9 +227,16 @@ Module.register("MMM-FolderPhotos", {
       if (this.config.showWidth) wrapper.style.width = this.config.showWidth + "px";
       if (this.config.showHeight) wrapper.style.height = this.config.showHeight + "px";
     }
-    current.addEventListener("animationend", () => {
+    
+    // Use named function for event listener to enable proper cleanup
+    const animationEndHandler = () => {
       current.classList.remove("animated");
-    });
+    };
+    current.addEventListener("animationend", animationEndHandler);
+    
+    // Store reference for cleanup
+    current._animationEndHandler = animationEndHandler;
+    
     let info = document.createElement("div");
     info.id = "FPHOTO_INFO";
     info.innerHTML = "Loading...";
@@ -227,5 +253,29 @@ Module.register("MMM-FolderPhotos", {
 
   resume() {
     this.suspended = false;
+  },
+
+  // Add proper cleanup method
+  stop: function() {
+    Log.info("Stopping MMM-FolderPhotos module");
+    
+    // Clear the update timer
+    if (this.updateTimer) {
+      clearInterval(this.updateTimer);
+      this.updateTimer = null;
+    }
+    
+    // Clear arrays to free memory
+    this.scanned = [];
+    this.albums = null;
+    
+    // Remove event listeners properly
+    const current = document.getElementById("FPHOTO_CURRENT");
+    if (current && current._animationEndHandler) {
+      current.removeEventListener("animationend", current._animationEndHandler);
+      current._animationEndHandler = null;
+    }
+    
+    this.suspended = true;
   },
 });

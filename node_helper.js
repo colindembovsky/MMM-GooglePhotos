@@ -463,6 +463,18 @@ const NodeHeleprObject = {
     this.log_debug("prepAndSendChunk");
 
     try {
+      // Add memory management
+      const maxListSize = 10000; // Limit photo list size
+      if (this.localPhotoList.length > maxListSize) {
+        this.log_warn(`Photo list too large (${this.localPhotoList.length}), trimming to ${maxListSize}`);
+        this.localPhotoList = this.localPhotoList.slice(0, maxListSize);
+        // Reset pointer if it's out of bounds
+        if (this.localPhotoPntr >= this.localPhotoList.length) {
+          this.localPhotoPntr = 0;
+          this.lastLocalPhotoPntr = 0;
+        }
+      }
+
       //find which ones to refresh
       if (this.localPhotoPntr < 0 || this.localPhotoPntr >= this.localPhotoList.length) {
         this.localPhotoPntr = 0;
@@ -564,6 +576,30 @@ const NodeHeleprObject = {
     this.scanTimer = setTimeout(() => {
       this.updatePhotos();
     }, this.config.scanInterval);
+  },
+
+  // Add proper cleanup
+  stop: function() {
+    this.log_info("Stopping node helper");
+    
+    // Clear all timers
+    if (this.scanTimer) {
+      clearTimeout(this.scanTimer);
+      this.scanTimer = null;
+    }
+    
+    if (this.initializeTimer) {
+      clearTimeout(this.initializeTimer);
+      this.initializeTimer = null;
+    }
+    
+    // Clear large data arrays
+    this.selectedAlbums = [];
+    this.localPhotoList = [];
+    this.photos = [];
+    
+    // Clear config
+    this.config = {};
   },
 };
 
